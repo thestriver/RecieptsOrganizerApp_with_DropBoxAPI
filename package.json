@@ -1,0 +1,21 @@
+{
+  "name": "payments-organizer-app-with-dropboxapi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "dns": "0.2.2",
+    "dropbox": "8.1.0",
+    "fetch": "1.1.0",
+    "unfetch": "4.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "7.2.0",
+    "parcel-bundler": "^1.6.1"
+  },
+  "keywords": []
+}
