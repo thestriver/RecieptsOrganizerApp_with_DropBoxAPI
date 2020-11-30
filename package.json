@@ -8,7 +8,7 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
-    "dns": "0.2.2",
+    "axios": "0.21.0",
     "dropbox": "8.1.0",
     "fetch": "1.1.0",
     "unfetch": "4.2.0"
