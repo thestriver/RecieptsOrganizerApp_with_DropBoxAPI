@@ -10,20 +10,48 @@ const dbx = new Dropbox({
 });
 
 const filesListItem = document.querySelector(".js-file-list");
+const loadingElem = document.querySelector(".js-loading");
 
 const state = {
   files: []
 };
 
-const init = () => {
-  dbx
-    .filesListFolder({
-      path: "",
-      limit: 20
-    })
-    .then((response) => {
-      updateFiles(response.result.entries);
-    });
+// const init = () => {
+//   dbx
+//     .filesListFolder({
+//       path: "",
+//       limit: 20
+//     })
+//     .then((response) => {
+//       updateFiles(response.result.entries);
+//     });
+// };
+//using async/await
+const init = async () => {
+  const response = await dbx.filesListFolder({
+    path: "",
+    limit: 10
+  });
+  updateFiles(response.result.entries);
+
+  //checking to see if there are more files
+  if (response.result.has_more) {
+    loadingElem.classList.remove("hidden");
+    await getMoreFiles(response.result.cursor, (more) =>
+      updateFiles(more.result.entries)
+    );
+    loadingElem.classList.add("hidden");
+  } else {
+    loadingElem.classList.add("hidden");
+  }
+};
+
+const getMoreFiles = async (cursor, cb) => {
+  const res = await dbx.filesListFolderContinue({ cursor });
+  if (cb) cb(res);
+  if (res.has_more) {
+    await getMoreFiles(res.cursor, cb);
+  }
 };
 
 const updateFiles = (files) => {
@@ -69,47 +97,60 @@ const renderFiles = () => {
 
 // const getThumbnails = (files) => {
 //   const paths = files
-//     .filter((file) => file["tag"] === "file")
+//     .filter((file) => file[".tag"] === "file")
 //     .map((file) => ({
 //       path: file.path_lower,
 //       size: "w32h32"
 //     }));
-
 //   dbx
 //     .filesGetThumbnailBatch({
 //       entries: paths
 //     })
 //     .then((response) => {
-//       console.log(response);
+//       console.log(response.result);
+//       // make a copy of state.files
+//       const newStateFiles = [...state.files];
+//       // loop through the file objects returned from dbx
+//       response.result.entries.forEach((file) => {
+//         // figure out the index of the file we need to update
+//         let indexToUpdate = state.files.findIndex(
+//           (stateFile) => file.metadata.path_lower === stateFile.path_lower
+//         );
+//         // put a .thumbnail property on the corresponding file
+//         newStateFiles[indexToUpdate].thumbnail = file.thumbnail;
+//       });
+//       state.files = newStateFiles;
+//       renderFiles();
 //     });
 // };
-const getThumbnails = (files) => {
+
+//using async/await
+const getThumbnails = async (files) => {
   const paths = files
     .filter((file) => file[".tag"] === "file")
     .map((file) => ({
       path: file.path_lower,
       size: "w32h32"
     }));
-  dbx
-    .filesGetThumbnailBatch({
-      entries: paths
-    })
-    .then((response) => {
-      console.log(response.result);
-      // make a copy of state.files
-      const newStateFiles = [...state.files];
-      // loop through the file objects returned from dbx
-      response.result.entries.forEach((file) => {
-        // figure out the index of the file we need to update
-        let indexToUpdate = state.files.findIndex(
-          (stateFile) => file.metadata.path_lower === stateFile.path_lower
-        );
-        // put a .thumbnail property on the corresponding file
-        newStateFiles[indexToUpdate].thumbnail = file.thumbnail;
-      });
-      state.files = newStateFiles;
-      renderFiles();
-    });
+
+  const response = await dbx.filesGetThumbnailBatch({
+    entries: paths
+  });
+  console.log(response.result);
+  // make a copy of state.files
+  const newStateFiles = [...state.files];
+  // loop through the file objects returned from dbx
+  response.result.entries.forEach((file) => {
+    // figure out the index of the file we need to update
+    let indexToUpdate = state.files.findIndex(
+      (stateFile) => file.metadata.path_lower === stateFile.path_lower
+    );
+    // put a .thumbnail property on the corresponding file
+    newStateFiles[indexToUpdate].thumbnail = file.thumbnail;
+
+    state.files = newStateFiles;
+    renderFiles();
+  });
 };
 
 init();
