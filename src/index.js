@@ -5,15 +5,44 @@ import { fetch } from "unfetch";
 
 const dbx = new Dropbox({
   accessToken:
-    "8R_HqZFicJ8AAAAAAAAAAb48ZeP9jz72Ks4pHgglKcxAUG5ifz7ioW5xw10ZHBAp",
+    "hw07qLQd72EAAAAAAAAAAQJj6984KmaabgRlOovbIWVF23Kks2slnA7pfYlK-Kxu",
   fetch
 });
 
 const filesListItem = document.querySelector(".js-file-list");
 const loadingElem = document.querySelector(".js-loading");
+const rootPathForm = document.querySelector('.js-root-path__form')
+const rootPathInput = document.querySelector('.js-root-path__input')
+const organizeBtn = document.querySelector('.js-organize-btn')
+
+//move to paths/folders
+rootPathForm.addEventListener('submit', event => {
+  event.preventDefault(); 
+  state.rootPath = rootPathInput.value ===  '/' ? '' : rootPathInput.value.toLowerCase()
+  reset()
+})
+
+//move files to paths/folders on click
+organizeBtn.addEventListener('click', async event => {
+  const originalMsg = event.target.innerHTML
+  event.target.disabled = true
+  event.target.innerHTML = 'Working...'
+  await moveFilesToDatedFolders()
+  event.target.disabled = false
+   event.target.innerHTML = originalMsg
+  reset()
+})
+
+const reset = () => {
+  state.files = []
+  loadingElem.classList.remove("hidden");
+  init()
+}
+
 
 const state = {
-  files: []
+  files: [],
+  rootPath: ''
 };
 
 // const init = () => {
@@ -29,7 +58,7 @@ const state = {
 //using async/await
 const init = async () => {
   const response = await dbx.filesListFolder({
-    path: "",
+    path: state.rootPath,
     limit: 10
   });
   updateFiles(response.result.entries);
@@ -136,7 +165,7 @@ const getThumbnails = async (files) => {
   const response = await dbx.filesGetThumbnailBatch({
     entries: paths
   });
-  console.log(response.result);
+  // console.log(response.result);
   // make a copy of state.files
   const newStateFiles = [...state.files];
   // loop through the file objects returned from dbx
@@ -152,5 +181,31 @@ const getThumbnails = async (files) => {
     renderFiles();
   });
 };
+
+const moveFilesToDatedFolders = async () => {
+  const entries = state.files
+    .filter(file => file['.tag'] === 'file')
+    .map(file => {
+      const date = new Date(file.client_modified);
+      return {
+        from_path: file.path_lower,
+        to_path: `${state.rootPath}/${date.getFullYear()}/${date.getUTCMonth() + 1}/${file.name}`
+      }
+    })
+  try {
+    let response = await dbx.filesMoveBatchV2({ entries })
+    const { async_job_id } = response
+    if (async_job_id) {
+      do {
+        response = await dbx.filesMoveBatchCheckV2({ async_job_id })
+        console.log(response)
+      } while (response['.tag'] === 'in_progress')
+    }
+  }
+  catch(err){
+    console.error(err)
+  }
+}
+
 
 init();
