@@ -4,6 +4,7 @@ import { fetch } from "unfetch";
 // import { axios } from "axios"
 
 const dbx = new Dropbox({
+  //accessToken to be gotten from Dropbox developer settings page
   accessToken:
     "hw07qLQd72EAAAAAAAAAAQJj6984KmaabgRlOovbIWVF23Kks2slnA7pfYlK-Kxu",
   fetch
